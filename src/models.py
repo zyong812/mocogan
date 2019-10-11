@@ -280,12 +280,13 @@ class VideoGenerator(nn.Module):
         return Variable(content)
 
     def sample_z_video(self, num_samples, video_len=None, flag=None):
+        video_len = video_len if video_len is not None else self.video_length
         # z_content = self.sample_z_content(num_samples, video_len)
         z_category, z_category_labels = self.sample_z_categ(num_samples, video_len)
         z_motion = self.sample_z_m(num_samples, video_len)
 
         image_content_z = self.get_image_content_z()
-        z_content = image_content_z.unsqueeze(1).repeat(1,16,1).view(-1, 50)
+        z_content = image_content_z.unsqueeze(1).repeat(1,video_len,1).view(-1, self.dim_z_content)
 
         if z_category is not None:
             z = torch.cat([z_content, z_category, z_motion], dim=1)
