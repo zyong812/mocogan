@@ -80,6 +80,7 @@ def video_transform(video, image_transform):
 if __name__ == "__main__":
     args = docopt.docopt(__doc__)
     print(args)
+    use_cuda = torch.cuda.is_available()
 
     n_channels = int(args['--n_channels'])
 
@@ -104,11 +105,12 @@ if __name__ == "__main__":
     dataset = data.VideoFolderDataset(args['<dataset>'], cache=os.path.join(args['<dataset>'], 'local.db'))
     image_dataset = data.ImageDataset(dataset, image_transforms)
     image_loader = DataLoader(image_dataset, batch_size=image_batch, drop_last=True, num_workers=2, shuffle=True)
+    content_image_loader = DataLoader(image_dataset, batch_size=image_batch, drop_last=True, num_workers=2, shuffle=True)
 
     video_dataset = data.VideoDataset(dataset, 16, 2, video_transforms)
     video_loader = DataLoader(video_dataset, batch_size=video_batch, drop_last=True, num_workers=2, shuffle=True)
 
-    generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length)
+    generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length, content_image_sampler=content_image_loader, use_cuda=use_cuda)
 
     image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels,
                                               use_noise=args['--use_noise'], noise_sigma=float(args['--noise_sigma']))
@@ -126,7 +128,7 @@ if __name__ == "__main__":
                       int(args['--print_every']),
                       int(args['--batches']),
                       args['<log_folder>'],
-                      use_cuda=torch.cuda.is_available(),
+                      use_cuda=use_cuda,
                       use_infogan=args['--use_infogan'],
                       use_categories=args['--use_categories'])
 

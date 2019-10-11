@@ -184,7 +184,7 @@ class CategoricalVideoDiscriminator(VideoDiscriminator):
 
 class VideoGenerator(nn.Module):
     def __init__(self, n_channels, dim_z_content, dim_z_category, dim_z_motion,
-                 video_length, ngf=64):
+                 video_length, content_image_sampler=None, use_cuda=False, ngf=64):
         super(VideoGenerator, self).__init__()
 
         self.n_channels = n_channels
@@ -213,6 +213,29 @@ class VideoGenerator(nn.Module):
             nn.ConvTranspose2d(ngf, self.n_channels, 4, 2, 1, bias=False),
             nn.Tanh()
         )
+
+        # use image encodings for content z
+        self.use_cuda = use_cuda
+        self.content_image_sampler = content_image_sampler
+        self.image_enumerator = enumerate(self.content_image_sampler)
+        self.content_encoder = ImageEncoder(dim_z_content)
+
+    def sample_content_images(self):
+        batch_idx, batch = next(self.image_enumerator)
+        b = batch
+        if self.use_cuda:
+            for k, v in batch.items():
+                b[k] = v.cuda()
+
+        if batch_idx == len(self.content_image_sampler) - 1:
+            self.image_enumerator = enumerate(self.content_image_sampler)
+
+        return b
+
+    def get_image_content_z(self):
+        content_images = self.sample_content_images()
+        image_content_z = self.content_encoder(content_images['images'])
+        return image_content_z
 
     def sample_z_m(self, num_samples, video_len=None):
         video_len = video_len if video_len is not None else self.video_length
@@ -256,10 +279,13 @@ class VideoGenerator(nn.Module):
             content = content.cuda()
         return Variable(content)
 
-    def sample_z_video(self, num_samples, video_len=None):
-        z_content = self.sample_z_content(num_samples, video_len)
+    def sample_z_video(self, num_samples, video_len=None, flag=None):
+        # z_content = self.sample_z_content(num_samples, video_len)
         z_category, z_category_labels = self.sample_z_categ(num_samples, video_len)
         z_motion = self.sample_z_m(num_samples, video_len)
+
+        image_content_z = self.get_image_content_z()
+        z_content = image_content_z.unsqueeze(1).repeat(1,16,1).view(-1, 50)
 
         if z_category is not None:
             z = torch.cat([z_content, z_category, z_motion], dim=1)
@@ -285,7 +311,9 @@ class VideoGenerator(nn.Module):
         return h, Variable(z_category_labels, requires_grad=False)
 
     def sample_images(self, num_samples):
-        z, z_category_labels = self.sample_z_video(num_samples * self.video_length * 2)
+        # 为什么要用这么多 num_samples?
+        # z, z_category_labels = self.sample_z_video(num_samples * self.video_length * 2)
+        z, z_category_labels = self.sample_z_video(num_samples)
 
         j = np.sort(np.random.choice(z.size(0), num_samples, replace=False)).astype(np.int64)
         z = z[j, ::]
@@ -299,3 +327,41 @@ class VideoGenerator(nn.Module):
 
     def get_iteration_noise(self, num_samples):
         return Variable(T.FloatTensor(num_samples, self.dim_z_motion).normal_())
+
+
+# https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
+class ImageEncoder(nn.Module):
+    def __init__(self, img_embeding_size):
+        super(ImageEncoder, self).__init__()
+        ndf = 64
+        self.ndf = ndf
+        self.img_embeding_size = img_embeding_size
+
+        self.main = nn.Sequential(
+            # input is (nc) x 64 x 64
+            nn.Conv2d(3, ndf, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 8, kernel_size=4, stride=2, padding=1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8, ndf * 16, kernel_size=4, stride=1, padding=0, bias=False),
+            # state size. (ndf*16) x 1 x 1
+        )
+        self.linear = nn.Linear(self.ndf*16, img_embeding_size)
+
+
+    def forward(self, x):
+        x = self.main(x)
+        x = x.view(x.shape[0], self.ndf * 16)
+        x = self.linear(x)
+        return x
