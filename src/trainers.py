@@ -233,10 +233,12 @@ class Trainer(object):
         # training loop
 
         def sample_fake_image_batch(batch_size):
-            return generator.sample_images(batch_size)
+            img, cat, _ = generator.sample_images(batch_size)
+            return img, cat
 
         def sample_fake_video_batch(batch_size):
-            return generator.sample_videos(batch_size)
+            img, cat, _ = generator.sample_videos(batch_size)
+            return img, cat
 
         def init_logs():
             return {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
@@ -277,8 +279,6 @@ class Trainer(object):
 
             batch_num += 1
 
-            # import ipdb; ipdb.set_trace()
-            print(batch_num)
             if batch_num % self.log_interval == 0:
 
                 log_string = "Batch %d" % batch_num
@@ -300,7 +300,8 @@ class Trainer(object):
                 images, _ = sample_fake_image_batch(self.image_batch_size)
                 logger.image_summary("Images", images_to_numpy(images), batch_num)
 
-                videos, _ = sample_fake_video_batch(self.video_batch_size)
+                videos, _, video_content_images = generator.sample_videos(self.video_batch_size)
+                logger.image_summary("Video_content_images", images_to_numpy(video_content_images), batch_num)
                 logger.video_summary("Videos", videos_to_numpy(videos), batch_num)
 
                 # torch.save(generator, os.path.join(self.log_folder, 'generator_%05d.pytorch' % batch_num))

@@ -233,8 +233,8 @@ class VideoGenerator(nn.Module):
         return b
 
     def get_image_content_z(self):
-        content_images = self.sample_content_images()
-        image_content_z = self.content_encoder(content_images['images'])
+        self.content_images = self.sample_content_images()['images']
+        image_content_z = self.content_encoder(self.content_images)
         return image_content_z
 
     def sample_z_m(self, num_samples, video_len=None):
@@ -309,7 +309,7 @@ class VideoGenerator(nn.Module):
             z_category_labels = z_category_labels.cuda()
 
         h = h.permute(0, 2, 1, 3, 4)
-        return h, Variable(z_category_labels, requires_grad=False)
+        return h, Variable(z_category_labels, requires_grad=False), self.content_images
 
     def sample_images(self, num_samples):
         # 为什么要用这么多 num_samples?
@@ -321,7 +321,7 @@ class VideoGenerator(nn.Module):
         z = z.view(z.size(0), z.size(1), 1, 1)
         h = self.main(z)
 
-        return h, None
+        return h, None, self.content_images
 
     def get_gru_initial_state(self, num_samples):
         return Variable(T.FloatTensor(num_samples, self.dim_z_motion).normal_())
