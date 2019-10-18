@@ -167,8 +167,8 @@ for epoch in range(10000):
             real_images = real_images.cuda()
             first_frames = first_frames.cuda()
 
-        fake_images, _ = generator.sample_images(image_batch)
-        fake_videos, _ = generator.sample_videos(video_batch)
+        fake_images, _ = generator.sample_images(image_batch, first_frames)
+        fake_videos, _ = generator.sample_videos(video_batch, first_frames)
 
         # train video discriminator
         opt_video_discriminator.zero_grad()
