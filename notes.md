@@ -58,7 +58,7 @@ python my_uncon_train_mnist.py  \
     --dim_z_content 50 \
     --dim_z_motion 10 \
     --dim_z_category 4 \
-    ../data/mnist2 ../logs/mnist2
+    /Users/zhangyong/projects/JD_GANimation/GANimation_Story/data/mnist2_16f/mnist_two_16f_gif.h5 ../logs/mnist2
 ```
 
 ## Comments

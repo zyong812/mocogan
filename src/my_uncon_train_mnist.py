@@ -116,7 +116,7 @@ dim_z_category = int(args['--dim_z_category'])
 
 # data
 voc = data.Vocabulary()
-data_file = '/Users/zhangyong/projects/JD_GANimation/GANimation_Story/data/mnist2_16f/mnist_two_16f_gif.h5'
+data_file = args['<dataset>']
 
 video_clip_dataset_train = data.VideoClipDataset({'data_file': data_file}, voc, mode='train')
 video_loader = torch.utils.data.DataLoader(
