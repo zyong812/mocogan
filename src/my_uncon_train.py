@@ -149,91 +149,80 @@ if torch.cuda.is_available():
 
 
 # training
-
-# trainer = Trainer(image_loader, video_loader,
-#                     int(args['--print_every']),
-#                     int(args['--batches']),
-#                     args['<log_folder>'],
-#                     use_cuda=use_cuda,
-#                     use_infogan=args['--use_infogan'],
-#                     use_categories=args['--use_categories'])
-
-# trainer.train(generator, image_discriminator, video_discriminator)
-
 opt_generator = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
 opt_image_discriminator = optim.Adam(image_discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
 opt_video_discriminator = optim.Adam(video_discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
 
 gan_criterion = nn.BCEWithLogitsLoss()
-
-# train one epoch
 logger = Logger(args['<log_folder>'])
 logs = {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
 start_time = time.time()
 generator.train()
 
-epoch = 1
+
 epoch_batch_num = len(video_loader)
+for epoch in range(10000):
+    video_sampler = enumerate(video_loader)
+    image_sampler = enumerate(image_loader)
+    for batch_ind in range(epoch_batch_num):
+        batch_num = epoch * epoch_batch_num + batch_ind
+        # prepare data
+        _, real_videos_dict = next(video_sampler)
+        _, real_images_dict = next(image_sampler)
+        if torch.cuda.is_available():
+            real_videos_dict['images'] = real_videos_dict['images'].cuda()
+            real_images_dict['images'] = real_images_dict['images'].cuda()
 
-video_sampler = enumerate(video_loader)
-image_sampler = enumerate(image_loader)
-for batch_ind in range(epoch_batch_num):
-    batch_num = epoch * epoch_batch_num + batch_ind
-    # prepare data
-    _, real_videos_dict = next(video_sampler)
-    _, real_images_dict = next(image_sampler)
+        fake_images, _ = generator.sample_images(image_batch)
+        fake_videos, _ = generator.sample_videos(video_batch)
 
-    fake_images, _ = generator.sample_images(image_batch)
-    fake_videos, _ = generator.sample_videos(video_batch)
+        # train video discriminator
+        opt_video_discriminator.zero_grad()
+        fake_labels, _ = video_discriminator(fake_videos.detach())
+        real_labels, _ = video_discriminator(real_videos_dict['images'])
+        loss_video_dis = gan_criterion(fake_labels, T.FloatTensor(fake_labels.size()).fill_(0.)) + \
+                    gan_criterion(real_labels, T.FloatTensor(real_labels.size()).fill_(1.))
+        loss_video_dis.backward()
+        opt_video_discriminator.step()
 
-    # train video discriminator
-    opt_video_discriminator.zero_grad()
-    fake_labels, _ = video_discriminator(fake_videos.detach())
-    real_labels, _ = video_discriminator(real_videos_dict['images'])
-    loss_video_dis = gan_criterion(fake_labels, T.zeros(fake_labels.size())) + \
-                 gan_criterion(real_labels, T.ones(real_labels.size()))
-    loss_video_dis.backward()
-    opt_video_discriminator.step()
+        # train image discriminator
+        opt_image_discriminator.zero_grad()
+        fake_labels, _ = image_discriminator(fake_images.detach())
+        real_labels, _ = image_discriminator(real_images_dict['images'])
+        loss_image_dis = gan_criterion(fake_labels, T.FloatTensor(fake_labels.size()).fill_(0.)) + \
+                    gan_criterion(real_labels, T.FloatTensor(real_labels.size()).fill_(1.))
+        loss_image_dis.backward()
+        opt_image_discriminator.step()
 
-    # train image discriminator
-    opt_image_discriminator.zero_grad()
-    fake_labels, _ = image_discriminator(fake_images.detach())
-    real_labels, _ = image_discriminator(real_images_dict['images'])
-    loss_image_dis = gan_criterion(fake_labels, T.zeros(fake_labels.size())) + \
-                 gan_criterion(real_labels, T.ones(real_labels.size()))
-    loss_image_dis.backward()
-    opt_image_discriminator.step()
+        # train generator
+        opt_generator.zero_grad()
+        image_fake_labels, _ = image_discriminator(fake_images)
+        loss_gen = gan_criterion(image_fake_labels, T.FloatTensor(image_fake_labels.size()).fill_(1.))
 
-    # train generator
-    opt_generator.zero_grad()
-    image_fake_labels, _ = image_discriminator(fake_images)
-    loss_gen = gan_criterion(image_fake_labels, T.ones(image_fake_labels.size()))
+        video_fake_labels, _ = video_discriminator(fake_videos)
+        loss_gen += gan_criterion(video_fake_labels, T.FloatTensor(video_fake_labels.size()).fill_(1.))
+        loss_gen.backward()
+        opt_generator.step()
 
-    video_fake_labels, _ = video_discriminator(fake_videos)
-    loss_gen += gan_criterion(video_fake_labels, T.ones(video_fake_labels.size()))
-    loss_gen.backward()
-    opt_generator.step()
+        logs['l_gen'] += loss_gen.data.item()
+        logs['l_image_dis'] += loss_image_dis.data.item()
+        logs['l_video_dis'] += loss_video_dis.data.item()
+        
+        if batch_num % 10 == 0:
+            took_time = time.time() - start_time
+            # import ipdb; ipdb.set_trace()
+            log_string = f"Epoch/Batch [{epoch}/{batch_ind}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}"
+            print(log_string)
 
-    logs['l_gen'] += loss_gen.data.item()
-    logs['l_image_dis'] += loss_image_dis.data.item()
-    logs['l_video_dis'] += loss_video_dis.data.item()
-    
-    if batch_ind % 2 == 0:
-        took_time = time.time() - start_time
-        # import ipdb; ipdb.set_trace()
-        log_string = f"Epoch/Batch [{epoch}/{batch_ind}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}"
-        print(log_string)
+            for tag, value in logs.items():
+                logger.scalar_summary(tag, value, batch_num)
 
-        for tag, value in logs.items():
-            logger.scalar_summary(tag, value, batch_num)
+            logs = {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
+            start_time = time.time()
 
-        logs = {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
-        start_time = time.time()
-
-        generator.eval()
-        images, _ = generator.sample_images(16)
-        logger.image_summary("Images", images_to_numpy(images), batch_num)
-        videos, _ = generator.sample_videos(16)
-        logger.video_summary("Videos", videos_to_numpy(videos), batch_num)
-
+            generator.eval()
+            images, _ = generator.sample_images(16)
+            logger.image_summary("Images", images_to_numpy(images), batch_num)
+            videos, _ = generator.sample_videos(16)
+            logger.video_summary("Videos", videos_to_numpy(videos), batch_num)
 

@@ -3,7 +3,7 @@
 train
 
 ```
-CUDA_VISIBLE_DEVICES=3 python train.py  \
+CUDA_VISIBLE_DEVICES=3 python my_uncon_train.py  \
     --image_batch 32 \
     --video_batch 32 \
     --use_infogan \
@@ -16,7 +16,7 @@ CUDA_VISIBLE_DEVICES=3 python train.py  \
     --dim_z_content 50 \
     --dim_z_motion 10 \
     --dim_z_category 4 \
-    ../data/actions ~/data/data_yongz/mocogan/logs/actions_small_image_samplesize
+    ../data/actions ~/data/data_yongz/mocogan/logs/actions_my_train
 ```
 
 TensorBoard
