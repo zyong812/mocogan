@@ -61,7 +61,7 @@ class ImageDataset(torch.utils.data.Dataset):
         else:
             video_id = 0
             frame_num = 0
-
+        
         video, target = self.dataset[video_id]
         video = np.array(video)
 

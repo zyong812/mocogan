@@ -43,6 +43,22 @@ python my_uncon_train.py  \
     --dim_z_motion 10 \
     --dim_z_category 4 \
     ../data/actions ../logs/actions
+
+python my_uncon_train_mnist.py  \
+    --image_batch 2 \
+    --video_batch 2 \
+    --use_infogan \
+    --use_noise \
+    --use_categories \
+    --noise_sigma 0.1 \
+    --image_discriminator PatchImageDiscriminator \
+    --video_discriminator CategoricalVideoDiscriminator \
+    --print_every 10 \
+    --every_nth 2 \
+    --dim_z_content 50 \
+    --dim_z_motion 10 \
+    --dim_z_category 4 \
+    ../data/mnist2 ../logs/mnist2
 ```
 
 ## Comments
