@@ -17,6 +17,20 @@ CUDA_VISIBLE_DEVICES=3 python my_uncon_train.py  \
     --dim_z_motion 10 \
     --dim_z_category 4 \
     ../data/actions ~/data/data_yongz/mocogan/logs/actions_my_train
+
+CUDA_VISIBLE_DEVICES=3 python my_cond_train.py  \
+    --image_batch 64 \
+    --video_batch 64 \
+    --use_infogan \
+    --use_noise \
+    --noise_sigma 0.1 \
+    --image_discriminator PatchImageDiscriminator \
+    --video_discriminator VideoDiscriminator \
+    --print_every 10 \
+    --every_nth 2 \
+    --dim_z_content 128 \
+    --dim_z_motion 64 \
+    /home/student/gyliu/data/data_yongz/mocogan/data/mnist_two_16f_gif.h5 ~/data/data_yongz/mocogan/logs/mnist2_base_cond
 ```
 
 TensorBoard
@@ -44,20 +58,18 @@ python my_uncon_train.py  \
     --dim_z_category 4 \
     ../data/actions ../logs/actions
 
-python my_uncon_train_mnist.py  \
+python my_cond_train.py  \
     --image_batch 2 \
     --video_batch 2 \
     --use_infogan \
     --use_noise \
-    --use_categories \
     --noise_sigma 0.1 \
     --image_discriminator PatchImageDiscriminator \
-    --video_discriminator CategoricalVideoDiscriminator \
+    --video_discriminator VideoDiscriminator \
     --print_every 10 \
     --every_nth 2 \
-    --dim_z_content 50 \
-    --dim_z_motion 10 \
-    --dim_z_category 4 \
+    --dim_z_content 128 \
+    --dim_z_motion 64 \
     /Users/zhangyong/projects/JD_GANimation/GANimation_Story/data/mnist2_16f/mnist_two_16f_gif.h5 ../logs/mnist2
 ```
 
