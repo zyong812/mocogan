@@ -225,4 +225,5 @@ for epoch in range(10000):
             logger.image_summary("Images", images_to_numpy(images), batch_num)
             videos, _ = generator.sample_videos(16)
             logger.video_summary("Videos", videos_to_numpy(videos), batch_num)
+            generator.train()
 

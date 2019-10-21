@@ -215,8 +215,9 @@ for epoch in range(10000):
             start_time = time.time()
 
             generator.eval()
-            images, _ = generator.sample_images(16)
+            images, _ = generator.sample_images(image_batch, first_frames)
             logger.image_summary("Images", images_to_numpy(images), batch_num)
-            videos, _ = generator.sample_videos(16)
+            videos, _ = generator.sample_videos(video_batch, first_frames)
             logger.video_summary("Videos", videos_to_numpy(videos), batch_num)
+            generator.train()
 
