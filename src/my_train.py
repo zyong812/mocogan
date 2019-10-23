@@ -15,7 +15,8 @@ Options:
 
     --image_size=<int>              resize all frames to this size [default: 64]
 
-    --use_infogan                   when specified infogan loss is used
+    --use_infogan                   when specified infogan loss is usedq:q
+    --use_nocondition               use no condition
 
     --use_categories                when specified ground truth categories are used to
                                     train CategoricalVideoDiscriminator
@@ -103,6 +104,7 @@ dim_z_motion = int(args['--dim_z_motion'])
 dim_z_category = int(args['--dim_z_category'])
 
 
+
 # data
 if 'mnist' in args['<dataset>']:
     import mnist_data as data
@@ -116,7 +118,6 @@ elif 'action' in args['<dataset>'] or 'shape' in args['<dataset>']:
     video_clip_dataset_train = data.VideoClipDataset(dataset, 16, 2)
     video_loader = torch.utils.data.DataLoader(video_clip_dataset_train, batch_size=video_batch, drop_last=True, shuffle=True, num_workers=4)
 
-video_clip_dataset_train[0]
 # models
 # generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length)
 generator = mymodels.CondVideoGenerator(n_channels, dim_z_content, dim_z_motion, video_length)
@@ -159,6 +160,9 @@ for epoch in range(10000):
             real_videos = real_videos.cuda()
             real_images = real_images.cuda()
             first_frames = first_frames.cuda()
+
+        if args['--use_nocondition']:
+            first_frames = None
 
         fake_images, _ = generator.sample_images(image_batch, first_frames)
         fake_videos, _ = generator.sample_videos(video_batch, first_frames)
