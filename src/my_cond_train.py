@@ -57,14 +57,12 @@ import models
 from trainers import Trainer
 from logger import Logger
 import time
-import mnist_data as data
 import mymodels
 
 if torch.cuda.is_available():
     T = torch.cuda
 else:
     T = torch
-
 
 
 def build_discriminator(type, **kwargs):
@@ -74,16 +72,6 @@ def build_discriminator(type, **kwargs):
         kwargs.pop('dim_categorical')
 
     return discriminator_type(**kwargs)
-
-
-def video_transform(video, image_transform):
-    vid = []
-    for im in video:
-        vid.append(image_transform(im))
-
-    vid = torch.stack(vid).permute(1, 0, 2, 3)
-
-    return vid
 
 def images_to_numpy(tensor):
     generated = tensor.data.cpu().numpy().transpose(0, 2, 3, 1)
@@ -116,14 +104,19 @@ dim_z_category = int(args['--dim_z_category'])
 
 
 # data
-voc = data.Vocabulary()
-data_file = args['<dataset>']
+if 'mnist' in args['<dataset>']:
+    import mnist_data as data
+    voc = data.Vocabulary()
+    data_file = args['<dataset>']
+    video_clip_dataset_train = data.VideoClipDataset({'data_file': data_file}, voc, mode='train')
+    video_loader = torch.utils.data.DataLoader(video_clip_dataset_train, batch_size=video_batch, drop_last=True, shuffle=True, num_workers=4)
+elif 'action' in args['<dataset>'] or 'shape' in args['<dataset>']:
+    import data
+    dataset = data.VideoFolderDataset(args['<dataset>'], cache=os.path.join(args['<dataset>'], 'local.db'))
+    video_clip_dataset_train = data.VideoClipDataset(dataset, 16, 2)
+    video_loader = torch.utils.data.DataLoader(video_clip_dataset_train, batch_size=video_batch, drop_last=True, shuffle=True, num_workers=4)
 
-video_clip_dataset_train = data.VideoClipDataset({'data_file': data_file}, voc, mode='train')
-video_loader = torch.utils.data.DataLoader(
-video_clip_dataset_train, batch_size=video_batch,
-drop_last=True, shuffle=True, num_workers=4)
-
+video_clip_dataset_train[0]
 # models
 # generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length)
 generator = mymodels.CondVideoGenerator(n_channels, dim_z_content, dim_z_motion, video_length)

@@ -10,6 +10,8 @@ import numpy as np
 import torch.utils.data
 from torchvision.datasets import ImageFolder
 import PIL
+from torchvision import transforms
+import functools
 
 
 class VideoFolderDataset(torch.utils.data.Dataset):
@@ -117,6 +119,64 @@ class VideoDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.dataset)
 
+class VideoClipDataset(torch.utils.data.Dataset):
+    def __init__(self, dataset, video_length, every_nth=1):
+        self.dataset = dataset
+        self.video_length = video_length
+        self.every_nth = every_nth
+
+    def __getitem__(self, item):
+        video, target = self.dataset[item]
+        video = np.array(video)
+
+        horizontal = video.shape[1] > video.shape[0]
+        shorter, longer = min(video.shape[0], video.shape[1]), max(video.shape[0], video.shape[1])
+        video_len = longer // shorter
+
+        # videos can be of various length, we randomly sample sub-sequences
+        if video_len >= self.video_length * self.every_nth:
+            needed = self.every_nth * (self.video_length - 1)
+            gap = video_len - needed
+            start = 0 if gap == 0 else np.random.randint(0, gap, 1)[0]
+            subsequence_idx = np.linspace(start, start + needed, self.video_length, endpoint=True, dtype=np.int32)
+        elif video_len >= self.video_length:
+            subsequence_idx = np.arange(0, self.video_length)
+        else:
+            raise Exception("Length is too short id - {}, len - {}").format(self.dataset[item], video_len)
+
+        frames = np.split(video, video_len, axis=1 if horizontal else 0)
+        selected = np.array([frames[s_id] for s_id in subsequence_idx])
+
+        video = self._transform(selected)
+        random_frame_num = np.random.randint(video.shape[0])
+
+        return {'vid': str(item),
+                'first_frame': video[0],
+                'sample_frame': video[random_frame_num], 
+                'clip': video.permute(1,0,2,3)
+                }
+
+    def _transform(self, clip):
+        image_transforms = transforms.Compose([
+            PIL.Image.fromarray,
+            # transforms.Resize((64, 64)),
+            transforms.ToTensor(),
+            lambda x: x[:3, ::],
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+        def video_transform(video, image_transform):
+            vt = []
+            for frame in video:
+                vt.append(image_transform(frame))
+            vt = torch.stack(vt)
+            return vt
+
+        video_transforms = functools.partial(video_transform, image_transform=image_transforms)
+        transformed_clip = video_transforms(clip)
+        return transformed_clip
+
+    def __len__(self):
+        return len(self.dataset)
 
 class ImageSampler(torch.utils.data.Dataset):
     def __init__(self, dataset, transform=None):

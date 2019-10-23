@@ -76,11 +76,11 @@ class VideoClipDataset(torch.utils.data.Dataset):
     def __getitem__(self, item):
         caption = self.voc.mnist_ind2sentence(self.caption_data[item])
         video   = (self.video_data[item][:,0,:,:,None] * 255).astype('uint8').repeat(3, axis=3)
-        frame_num = np.random.randint(video.shape[0])
+        random_frame_num = np.random.randint(video.shape[0])
         video   = self._transform(video)
         return {'vid': str(item),
                 'first_frame': video[0],
-                'sample_frame': video[frame_num], 
+                'sample_frame': video[random_frame_num], 
                 'clip': video.permute(1,0,2,3),
                 'desc': caption}
 
