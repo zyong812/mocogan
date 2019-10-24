@@ -17,20 +17,19 @@ CUDA_VISIBLE_DEVICES=3 python my_uncon_train_mnist.py  \
     /home/student/gyliu/data/data_yongz/mocogan/data/mnist_two_16f_gif.h5 \
     ~/data/data_yongz/mocogan/logs/mnist2_uncondition_fix_eval
 
-CUDA_VISIBLE_DEVICES=2 python my_cond_train.py  \
+CUDA_VISIBLE_DEVICES=2 python my_train.py  \
     --image_batch 64 \
     --video_batch 64 \
     --use_noise \
     --noise_sigma 0.1 \
-    --use_nocondition \ 
     --image_discriminator PatchImageDiscriminator \
     --video_discriminator VideoDiscriminator \
     --print_every 10 \
     --every_nth 2 \
     --dim_z_content 128 \
     --dim_z_motion 64 \
-    ../data/actions \
-    ~/data/data_yongz/mocogan/logs/action_with_firstframe_condition
+    /home/student/gyliu/data/data_yongz/mocogan/data/mnist_two_16f_gif.h5 \
+    ~/data/data_yongz/mocogan/logs/mnist2_use_first_frame_condition
 ```
 
 TensorBoard
@@ -70,10 +69,9 @@ python my_train.py  \
     --every_nth 2 \
     --dim_z_content 128 \
     --dim_z_motion 64 \
-    ../data/actions ../logs/actions
+    /Users/zhangyong/projects/JD_GANimation/GANimation_Story/data/mnist_single_16f/mnist_single_16f_gif.h5 ../logs/mnist_single
 ```
 
 ## Comments
 
-* PatchImageDiscriminator 据说效果更好，可以尝试下
 * 在 Discriminator 加入 Noise 层有什么作用
