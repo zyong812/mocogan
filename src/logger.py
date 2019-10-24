@@ -6,6 +6,7 @@ Licensed under the CC BY-NC-ND 4.0 license (https://creativecommons.org/licenses
 import tensorflow as tf
 import numpy as np
 import scipy.misc
+from tensorboard.plugins.text import metadata
 
 try:
     from StringIO import StringIO  # Python 2.7
@@ -20,6 +21,23 @@ class Logger(object):
     def scalar_summary(self, tag, value, step):
         summary = tf.Summary(value=[tf.Summary.Value(tag=tag, simple_value=value)])
         self.writer.add_summary(summary, step)
+
+
+    def text_summary(self, tag, value, step=None):
+        """Log string or 2D string tables. """
+        summary_metadata = metadata.create_summary_metadata(
+                display_name="text",
+                description="Text Summary")
+        summary_metadata = tf.SummaryMetadata.FromString(
+                summary_metadata.SerializeToString())
+        tensor = tf.make_tensor_proto(value, dtype=tf.string)
+        summary = tf.Summary(value=[tf.Summary.Value(
+            tag=tag,
+            metadata=summary_metadata,
+            tensor=tensor
+            )])
+        self.writer.add_summary(summary, step)
+        self.writer.flush()
 
     def image_summary(self, tag, images, step):
 

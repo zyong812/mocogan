@@ -59,6 +59,7 @@ from trainers import Trainer
 from logger import Logger
 import time
 import mymodels
+import json
 
 if torch.cuda.is_available():
     T = torch.cuda
@@ -145,6 +146,10 @@ logger = Logger(args['<log_folder>'])
 logs = {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
 start_time = time.time()
 generator.train()
+
+
+p = json.dumps(args, sort_keys=True, indent=4)
+logger.text_summary('args', p)
 
 epoch_batch_num = len(video_loader)
 for epoch in range(10000):
