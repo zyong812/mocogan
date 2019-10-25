@@ -206,7 +206,7 @@ for epoch in range(10000):
         
         if batch_num % 10 == 0:
             took_time = time.time() - start_time
-            # import ipdb; ipdb.set_trace()
+
             log_string = f"Epoch/Batch [{epoch}/{batch_ind}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}"
             print(log_string)
 

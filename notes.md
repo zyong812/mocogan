@@ -17,19 +17,17 @@ CUDA_VISIBLE_DEVICES=3 python my_uncon_train_mnist.py  \
     /home/student/gyliu/data/data_yongz/mocogan/data/mnist_two_16f_gif.h5 \
     ~/data/data_yongz/mocogan/logs/mnist2_uncondition_fix_eval
 
-CUDA_VISIBLE_DEVICES=2 python my_train.py  \
+CUDA_VISIBLE_DEVICES=3 python my_train.py  \
     --image_batch 64 \
     --video_batch 64 \
-    --use_noise \
-    --noise_sigma 0.1 \
     --image_discriminator PatchImageDiscriminator \
     --video_discriminator VideoDiscriminator \
     --print_every 10 \
     --every_nth 2 \
-    --dim_z_content 128 \
-    --dim_z_motion 64 \
-    /home/student/gyliu/data/data_yongz/mocogan/data/mnist_two_16f_gif.h5 \
-    ~/data/data_yongz/mocogan/logs/mnist2_use_first_frame_condition
+    --dim_z_content 256 \
+    --dim_z_motion 128 \
+    /home/student/gyliu/data/data_yongz/mocogan/data/mnist_single_16f_gif.h5 \
+    ~/data/data_yongz/mocogan/logs/mnist_only_use_videoD
 ```
 
 TensorBoard
@@ -62,7 +60,6 @@ python my_train.py  \
     --video_batch 2 \
     --use_noise \
     --noise_sigma 0.1 \
-    --use_nocondition \
     --image_discriminator PatchImageDiscriminator \
     --video_discriminator VideoDiscriminator \
     --print_every 10 \
