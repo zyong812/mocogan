@@ -123,7 +123,7 @@ elif 'action' in args['<dataset>'] or 'shape' in args['<dataset>']:
 # generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length)
 generator = mymodels.CondVideoGenerator(n_channels, dim_z_content, dim_z_motion, video_length)
 
-image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels,
+image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels*2,
                                             use_noise=args['--use_noise'], noise_sigma=float(args['--noise_sigma']))
 
 video_discriminator = build_discriminator(args['--video_discriminator'], dim_categorical=dim_z_category,
@@ -183,8 +183,10 @@ for epoch in range(10000):
 
         # train image discriminator
         opt_image_discriminator.zero_grad()
-        fake_labels, _ = image_discriminator(fake_images.detach())
-        real_labels, _ = image_discriminator(real_images)
+        imageD_fake_inputs = torch.cat([first_frames, fake_images.detach()], dim=1)
+        imageD_real_inputs = torch.cat([first_frames, real_images], dim=1)
+        fake_labels, _ = image_discriminator(imageD_fake_inputs)
+        real_labels, _ = image_discriminator(imageD_real_inputs)
         loss_image_dis = gan_criterion(fake_labels, T.FloatTensor(fake_labels.size()).fill_(0.)) + \
                     gan_criterion(real_labels, T.FloatTensor(real_labels.size()).fill_(1.))
         loss_image_dis.backward()
@@ -192,7 +194,8 @@ for epoch in range(10000):
 
         # train generator
         opt_generator.zero_grad()
-        image_fake_labels, _ = image_discriminator(fake_images)
+        imageD_fake_inputs = torch.cat([first_frames, fake_images], dim=1)
+        image_fake_labels, _ = image_discriminator(imageD_fake_inputs)
         loss_gen = gan_criterion(image_fake_labels, T.FloatTensor(image_fake_labels.size()).fill_(1.))
 
         video_fake_labels, _ = video_discriminator(fake_videos)
