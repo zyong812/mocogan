@@ -136,7 +136,7 @@ class CondVideoGenerator(nn.Module):
         z = self.prepare_inputs(num_samples, first_frames)
 
         gen_len = z.shape[0] // num_samples
-        j = np.sort(np.random.choice(gen_len, num_samples, replace=False)).astype(np.int64) + np.arange(2) * gen_len
+        j = np.random.choice(gen_len, num_samples).astype(np.int64) + np.arange(num_samples) * gen_len
 
         z = z[j, ::]
         z = z.view(z.size(0), z.size(1), 1, 1)
