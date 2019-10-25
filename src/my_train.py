@@ -123,7 +123,7 @@ elif 'action' in args['<dataset>'] or 'shape' in args['<dataset>']:
 # generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length)
 generator = mymodels.CondVideoGenerator(n_channels, dim_z_content, dim_z_motion, video_length)
 
-image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels*2,
+image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels,
                                             use_noise=args['--use_noise'], noise_sigma=float(args['--noise_sigma']))
 
 video_discriminator = build_discriminator(args['--video_discriminator'], dim_categorical=dim_z_category,
@@ -181,18 +181,15 @@ for epoch in range(10000):
 
         # train image discriminator
         opt_image_discriminator.zero_grad()
-        imageD_fake_inputs = torch.cat([first_frames, fake_images.detach()], dim=1)
-        imageD_real_inputs = torch.cat([first_frames, real_images], dim=1)
-        fake_labels, _ = image_discriminator(imageD_fake_inputs)
-        real_labels, _ = image_discriminator(imageD_real_inputs)
+        fake_labels, _ = image_discriminator(fake_images.detach())
+        real_labels, _ = image_discriminator(real_images)
         loss_image_dis = fake_labels.mean() - real_labels.mean()
         loss_image_dis.backward()
         opt_image_discriminator.step()
 
         # train generator
         opt_generator.zero_grad()
-        imageD_fake_inputs = torch.cat([first_frames, fake_images], dim=1)
-        image_fake_labels, _ = image_discriminator(imageD_fake_inputs)
+        image_fake_labels, _ = image_discriminator(fake_images)
         loss_gen = -image_fake_labels.mean()
 
         video_fake_labels, _ = video_discriminator(fake_videos)
