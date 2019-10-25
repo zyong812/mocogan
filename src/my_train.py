@@ -135,7 +135,7 @@ if torch.cuda.is_available():
     image_discriminator.cuda()
     video_discriminator.cuda()
 
-opt_generator = optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
+opt_generator = optim.Adam(generator.parameters(), lr=0.0005, betas=(0.5, 0.999), weight_decay=0.00001)
 opt_image_discriminator = optim.Adam(image_discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
 opt_video_discriminator = optim.Adam(video_discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
 
