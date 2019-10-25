@@ -216,8 +216,8 @@ for epoch in range(10000):
         if batch_num % 10 == 0:
             took_time = time.time() - start_time
 
-            log_string = f"Epoch/Batch [{epoch}/{batch_ind} ~ {batch_num}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}"
-            print(log_string)
+            print(f"Epoch/Batch [{epoch}/{batch_ind} ~ {batch_num}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}")
+            print(f"\t videoD: D_real={vd_real.mean():5.3f}, D_fake={vd_fake.mean():5.3f} ,\t imageD: D_real={id_real.mean():5.3f}, D_fake={id_fake.mean():5.3f}, \t G: vid_fake={vg_fake.mean():5.3f}, img_fake={ig_fake.mean():5.3f}")
 
             for tag, value in logs.items():
                 logger.scalar_summary(tag, value, batch_num)
