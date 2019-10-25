@@ -31,6 +31,7 @@ Options:
     --video_discriminator=<type>    specifies video discriminator type (see models.py for a
                                     list of available models) [default: CategoricalVideoDiscriminator]
 
+    --gan_type=<type>               criterion std or wgan [default: std]
     --video_length=<len>            length of the video [default: 16]
     --print_every=<count>           print every iterations [default: 1]
     --n_channels=<count>            number of channels in the input data [default: 3]
@@ -141,11 +142,11 @@ opt_video_discriminator = optim.Adam(video_discriminator.parameters(), lr=0.0002
 
 
 # training
+gan_criterion = nn.BCELoss()
 logger = Logger(args['<log_folder>'])
 logs = {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
 start_time = time.time()
 generator.train()
-
 
 p = json.dumps(args, sort_keys=True, indent=4)
 logger.text_summary('args', p)
@@ -173,27 +174,38 @@ for epoch in range(10000):
 
         # train video discriminator
         opt_video_discriminator.zero_grad()
-        fake_labels, _ = video_discriminator(fake_videos.detach())
-        real_labels, _ = video_discriminator(real_videos)
-        loss_video_dis = fake_labels.mean() - real_labels.mean()
+        vd_fake, _ = video_discriminator(fake_videos.detach())
+        vd_real, _ = video_discriminator(real_videos)
+        if args['--gan_type'] == 'std':
+            loss_video_dis = gan_criterion(vd_fake, T.FloatTensor(vd_fake.size()).fill_(0.)) + \
+                gan_criterion(vd_real, T.FloatTensor(vd_real.size()).fill_(1.))
+        elif args['--gan_type'] == 'wgan':
+            loss_video_dis = vd_fake.mean() - vd_real.mean()
         loss_video_dis.backward()
         opt_video_discriminator.step()
 
         # train image discriminator
         opt_image_discriminator.zero_grad()
-        fake_labels, _ = image_discriminator(fake_images.detach())
-        real_labels, _ = image_discriminator(real_images)
-        loss_image_dis = fake_labels.mean() - real_labels.mean()
+        id_fake, _ = image_discriminator(fake_images.detach())
+        id_real, _ = image_discriminator(real_images)
+        if args['--gan_type'] == 'std':
+            loss_image_dis = gan_criterion(id_fake, T.FloatTensor(id_fake.size()).fill_(0.)) + \
+                gan_criterion(id_real, T.FloatTensor(id_real.size()).fill_(1.))
+        elif args['--gan_type'] == 'wgan':
+            loss_image_dis = id_fake.mean() - id_real.mean()
         loss_image_dis.backward()
         opt_image_discriminator.step()
 
         # train generator
         opt_generator.zero_grad()
-        image_fake_labels, _ = image_discriminator(fake_images)
-        loss_gen = -image_fake_labels.mean()
+        ig_fake, _ = image_discriminator(fake_images)
+        vg_fake, _ = video_discriminator(fake_videos)
 
-        video_fake_labels, _ = video_discriminator(fake_videos)
-        loss_gen += (-video_fake_labels.mean())
+        if args['--gan_type'] == 'std':
+            loss_gen = gan_criterion(ig_fake, T.FloatTensor(ig_fake.size()).fill_(1.)) + \
+                gan_criterion(vg_fake, T.FloatTensor(vg_fake.size()).fill_(1.))
+        elif args['--gan_type'] == 'wgan':
+            loss_gen = (-ig_fake.mean() - vg_fake.mean())
         loss_gen.backward()
         opt_generator.step()
 
@@ -204,7 +216,7 @@ for epoch in range(10000):
         if batch_num % 10 == 0:
             took_time = time.time() - start_time
 
-            log_string = f"Epoch/Batch [{epoch}/{batch_ind}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}"
+            log_string = f"Epoch/Batch [{epoch}/{batch_ind} ~ {batch_num}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}"
             print(log_string)
 
             for tag, value in logs.items():
