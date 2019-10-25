@@ -124,7 +124,7 @@ elif 'action' in args['<dataset>'] or 'shape' in args['<dataset>']:
 # generator = models.VideoGenerator(n_channels, dim_z_content, dim_z_category, dim_z_motion, video_length)
 generator = mymodels.CondVideoGenerator(n_channels, dim_z_content, dim_z_motion, video_length)
 
-image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels,
+image_discriminator = build_discriminator(args['--image_discriminator'], n_channels=n_channels*2,
                                             use_noise=args['--use_noise'], noise_sigma=float(args['--noise_sigma']))
 
 video_discriminator = build_discriminator(args['--video_discriminator'], dim_categorical=dim_z_category,
@@ -186,8 +186,8 @@ for epoch in range(10000):
 
         # train image discriminator
         opt_image_discriminator.zero_grad()
-        id_fake, _ = image_discriminator(fake_images.detach())
-        id_real, _ = image_discriminator(real_images)
+        id_fake, _ = image_discriminator(torch.cat([first_frames, fake_images.detach()], dim=1))
+        id_real, _ = image_discriminator(torch.cat([first_frames, real_images], dim=1))
         if args['--gan_type'] == 'std':
             loss_image_dis = gan_criterion(id_fake, T.FloatTensor(id_fake.size()).fill_(0.)) + \
                 gan_criterion(id_real, T.FloatTensor(id_real.size()).fill_(1.))
@@ -198,7 +198,7 @@ for epoch in range(10000):
 
         # train generator
         opt_generator.zero_grad()
-        ig_fake, _ = image_discriminator(fake_images)
+        ig_fake, _ = image_discriminator(torch.cat([first_frames, fake_images], dim=1))
         vg_fake, _ = video_discriminator(fake_videos)
 
         if args['--gan_type'] == 'std':
@@ -217,7 +217,7 @@ for epoch in range(10000):
             took_time = time.time() - start_time
 
             print(f"Epoch/Batch [{epoch}/{batch_ind} ~ {batch_num}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}")
-            print(f"\t videoD: D_real={vd_real.mean():5.3f}, D_fake={vd_fake.mean():5.3f} ,\t imageD: D_real={id_real.mean():5.3f}, D_fake={id_fake.mean():5.3f}, \t G: vid_fake={vg_fake.mean():5.3f}, img_fake={ig_fake.mean():5.3f}")
+            print(f"\t videoD: D_real={vd_real.mean():5.3f}, D_fake={vd_fake.mean():5.3f} || imageD: D_real={id_real.mean():5.3f}, D_fake={id_fake.mean():5.3f} || G: vid_fake={vg_fake.mean():5.3f}, img_fake={ig_fake.mean():5.3f}")
 
             for tag, value in logs.items():
                 logger.scalar_summary(tag, value, batch_num)
