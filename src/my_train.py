@@ -141,7 +141,6 @@ opt_video_discriminator = optim.Adam(video_discriminator.parameters(), lr=0.0002
 
 
 # training
-gan_criterion = nn.BCEWithLogitsLoss()
 logger = Logger(args['<log_folder>'])
 logs = {'l_gen': 0, 'l_image_dis': 0, 'l_video_dis': 0}
 start_time = time.time()
@@ -176,8 +175,7 @@ for epoch in range(10000):
         opt_video_discriminator.zero_grad()
         fake_labels, _ = video_discriminator(fake_videos.detach())
         real_labels, _ = video_discriminator(real_videos)
-        loss_video_dis = gan_criterion(fake_labels, T.FloatTensor(fake_labels.size()).fill_(0.)) + \
-                    gan_criterion(real_labels, T.FloatTensor(real_labels.size()).fill_(1.))
+        loss_video_dis = fake_labels.mean() - real_labels.mean()
         loss_video_dis.backward()
         opt_video_discriminator.step()
 
@@ -187,8 +185,7 @@ for epoch in range(10000):
         imageD_real_inputs = torch.cat([first_frames, real_images], dim=1)
         fake_labels, _ = image_discriminator(imageD_fake_inputs)
         real_labels, _ = image_discriminator(imageD_real_inputs)
-        loss_image_dis = gan_criterion(fake_labels, T.FloatTensor(fake_labels.size()).fill_(0.)) + \
-                    gan_criterion(real_labels, T.FloatTensor(real_labels.size()).fill_(1.))
+        loss_image_dis = fake_labels.mean() - real_labels.mean()
         loss_image_dis.backward()
         opt_image_discriminator.step()
 
@@ -196,10 +193,10 @@ for epoch in range(10000):
         opt_generator.zero_grad()
         imageD_fake_inputs = torch.cat([first_frames, fake_images], dim=1)
         image_fake_labels, _ = image_discriminator(imageD_fake_inputs)
-        loss_gen = gan_criterion(image_fake_labels, T.FloatTensor(image_fake_labels.size()).fill_(1.))
+        loss_gen = -image_fake_labels.mean()
 
         video_fake_labels, _ = video_discriminator(fake_videos)
-        loss_gen += gan_criterion(video_fake_labels, T.FloatTensor(video_fake_labels.size()).fill_(1.))
+        loss_gen += (-video_fake_labels.mean())
         loss_gen.backward()
         opt_generator.step()
 
