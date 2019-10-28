@@ -10,7 +10,6 @@ import torch.utils.data
 from torch.autograd import Variable
 
 import numpy as np
-from spectral import SpectralNorm
 
 if torch.cuda.is_available():
     T = torch.cuda
@@ -73,21 +72,21 @@ class PatchImageDiscriminator(nn.Module):
 
         self.main = nn.Sequential(
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv2d(n_channels, ndf, 4, 2, 1, bias=False)),
+            nn.Conv2d(n_channels, ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False)),
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False)),
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv2d(ndf * 4, 1, 4, 2, 1, bias=False)),
+            nn.Conv2d(ndf * 4, 1, 4, 2, 1, bias=False),
             nn.Sigmoid()
         )
 
@@ -107,25 +106,25 @@ class VideoDiscriminator(nn.Module):
 
         self.main = nn.Sequential(
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv3d(n_channels, ndf, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False)),
+            nn.Conv3d(n_channels, ndf, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv3d(ndf, ndf * 2, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False)),
+            nn.Conv3d(ndf, ndf * 2, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
             nn.InstanceNorm3d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv3d(ndf * 2, ndf * 4, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False)),
+            nn.Conv3d(ndf * 2, ndf * 4, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
             nn.InstanceNorm3d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            SpectralNorm(nn.Conv3d(ndf * 4, ndf * 8, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False)),
+            nn.Conv3d(ndf * 4, ndf * 8, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
             nn.InstanceNorm3d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
 
-            SpectralNorm(nn.Conv3d(ndf * 8, n_output_neurons, 4, 1, 0, bias=False)),
+            nn.Conv3d(ndf * 8, n_output_neurons, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
 

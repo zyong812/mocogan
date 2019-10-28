@@ -5,7 +5,6 @@ import torch.utils.data
 from torch.autograd import Variable
 
 import numpy as np
-from spectral import SpectralNorm
 
 if torch.cuda.is_available():
     T = torch.cuda
@@ -21,22 +20,22 @@ class FrameEncoder(nn.Module):
 
         self.main = nn.Sequential(
             # input is (nc) x 64 x 64
-            SpectralNorm(nn.Conv2d(3, ndf, kernel_size=4, stride=2, padding=1, bias=False)),
+            nn.Conv2d(3, ndf, kernel_size=4, stride=2, padding=1, bias=False),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf) x 32 x 32
-            SpectralNorm(nn.Conv2d(ndf, ndf * 2, kernel_size=4, stride=2, padding=1, bias=False)),
+            nn.Conv2d(ndf, ndf * 2, kernel_size=4, stride=2, padding=1, bias=False),
             nn.InstanceNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*2) x 16 x 16
-            SpectralNorm(nn.Conv2d(ndf * 2, ndf * 4, kernel_size=4, stride=2, padding=1, bias=False)),
+            nn.Conv2d(ndf * 2, ndf * 4, kernel_size=4, stride=2, padding=1, bias=False),
             nn.InstanceNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*4) x 8 x 8
-            SpectralNorm(nn.Conv2d(ndf * 4, ndf * 8, kernel_size=4, stride=2, padding=1, bias=False)),
+            nn.Conv2d(ndf * 4, ndf * 8, kernel_size=4, stride=2, padding=1, bias=False),
             nn.InstanceNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
             # state size. (ndf*8) x 4 x 4
-            SpectralNorm(nn.Conv2d(ndf * 8, ndf * 16, kernel_size=4, stride=1, padding=0, bias=False)),
+            nn.Conv2d(ndf * 8, ndf * 16, kernel_size=4, stride=1, padding=0, bias=False),
             # state size. (ndf*16) x 1 x 1
         )
         self.linear = nn.Linear(self.ndf*16, img_embeding_size)
@@ -64,19 +63,19 @@ class CondVideoGenerator(nn.Module):
         self.recurrent = nn.GRUCell(dim_z_motion, dim_z_motion)
 
         self.main = nn.Sequential(
-            SpectralNorm(nn.ConvTranspose2d(dim_z, ngf * 8, 4, 1, 0, bias=False)),
+            nn.ConvTranspose2d(dim_z, ngf * 8, 4, 1, 0, bias=False),
             nn.InstanceNorm2d(ngf * 8),
             nn.ReLU(True),
-            SpectralNorm(nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False)),
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(ngf * 4),
             nn.ReLU(True),
-            SpectralNorm(nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False)),
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(ngf * 2),
             nn.ReLU(True),
-            SpectralNorm(nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False)),
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
             nn.InstanceNorm2d(ngf),
             nn.ReLU(True),
-            SpectralNorm(nn.ConvTranspose2d(ngf, self.n_channels, 4, 2, 1, bias=False)),
+            nn.ConvTranspose2d(ngf, self.n_channels, 4, 2, 1, bias=False),
             nn.Tanh()
         )
 
