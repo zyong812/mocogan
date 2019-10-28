@@ -166,7 +166,7 @@ video_discriminator = build_discriminator(args['--video_discriminator'], dim_cat
                                             n_channels=n_channels, use_noise=args['--use_noise'],
                                             noise_sigma=float(args['--noise_sigma']))
 
-if torch.cuda.is_available():
+if use_cuda:
     generator.cuda()
     image_discriminator.cuda()
     video_discriminator.cuda()
@@ -196,7 +196,7 @@ for epoch in range(10000):
         real_videos = real_videos_dict['clip']
         real_images = real_videos_dict['sample_frame']
         first_frames = real_videos_dict['first_frame']
-        if torch.cuda.is_available():
+        if use_cuda:
             real_videos = real_videos.cuda()
             real_images = real_images.cuda()
             first_frames = first_frames.cuda()
@@ -209,7 +209,7 @@ for epoch in range(10000):
         # train video discriminator
         vd_real, _ = video_discriminator(real_videos)
         vd_fake, _ = video_discriminator(fake_videos.detach())
-        vd_wgp = gradient_penalty(real_videos, fake_videos, video_discriminator)
+        vd_wgp = gradient_penalty(real_videos, fake_videos, video_discriminator, use_cuda=use_cuda)
 
         opt_video_discriminator.zero_grad()
         loss_video_dis = vd_fake.mean() - vd_real.mean() + vd_wgp
@@ -221,7 +221,7 @@ for epoch in range(10000):
         id_fake_input = torch.cat([first_frames, fake_images.detach()], dim=1)
         id_real, _ = image_discriminator(id_real_input)
         id_fake, _ = image_discriminator(id_fake_input)
-        id_wgp = gradient_penalty(id_real_input, id_fake_input, image_discriminator)
+        id_wgp = gradient_penalty(id_real_input, id_fake_input, image_discriminator, use_cuda=use_cuda)
 
         opt_image_discriminator.zero_grad()
         loss_image_dis = id_fake.mean() - id_real.mean() + id_wgp
