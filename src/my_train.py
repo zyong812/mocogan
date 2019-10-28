@@ -31,7 +31,6 @@ Options:
     --video_discriminator=<type>    specifies video discriminator type (see models.py for a
                                     list of available models) [default: CategoricalVideoDiscriminator]
 
-    --gan_type=<type>               criterion std or wgan [default: std]
     --video_length=<len>            length of the video [default: 16]
     --print_every=<count>           print every iterations [default: 1]
     --n_channels=<count>            number of channels in the input data [default: 3]
@@ -176,11 +175,8 @@ for epoch in range(10000):
         opt_video_discriminator.zero_grad()
         vd_fake, _ = video_discriminator(fake_videos.detach())
         vd_real, _ = video_discriminator(real_videos)
-        if args['--gan_type'] == 'std':
-            loss_video_dis = gan_criterion(vd_fake, T.FloatTensor(vd_fake.size()).fill_(0.)) + \
-                gan_criterion(vd_real, T.FloatTensor(vd_real.size()).fill_(1.))
-        elif args['--gan_type'] == 'wgan':
-            loss_video_dis = vd_fake.mean() - vd_real.mean()
+        loss_video_dis = gan_criterion(vd_fake, T.FloatTensor(vd_fake.size()).fill_(0.)) + \
+            gan_criterion(vd_real, T.FloatTensor(vd_real.size()).fill_(1.))
         loss_video_dis.backward()
         opt_video_discriminator.step()
 
@@ -188,11 +184,8 @@ for epoch in range(10000):
         opt_image_discriminator.zero_grad()
         id_fake, _ = image_discriminator(torch.cat([first_frames, fake_images.detach()], dim=1))
         id_real, _ = image_discriminator(torch.cat([first_frames, real_images], dim=1))
-        if args['--gan_type'] == 'std':
-            loss_image_dis = gan_criterion(id_fake, T.FloatTensor(id_fake.size()).fill_(0.)) + \
-                gan_criterion(id_real, T.FloatTensor(id_real.size()).fill_(1.))
-        elif args['--gan_type'] == 'wgan':
-            loss_image_dis = id_fake.mean() - id_real.mean()
+        loss_image_dis = gan_criterion(id_fake, T.FloatTensor(id_fake.size()).fill_(0.)) + \
+            gan_criterion(id_real, T.FloatTensor(id_real.size()).fill_(1.))
         loss_image_dis.backward()
         opt_image_discriminator.step()
 
@@ -201,11 +194,8 @@ for epoch in range(10000):
         ig_fake, _ = image_discriminator(torch.cat([first_frames, fake_images], dim=1))
         vg_fake, _ = video_discriminator(fake_videos)
 
-        if args['--gan_type'] == 'std':
-            loss_gen = gan_criterion(ig_fake, T.FloatTensor(ig_fake.size()).fill_(1.)) + \
-                gan_criterion(vg_fake, T.FloatTensor(vg_fake.size()).fill_(1.))
-        elif args['--gan_type'] == 'wgan':
-            loss_gen = (-ig_fake.mean() - vg_fake.mean())
+        loss_gen = gan_criterion(ig_fake, T.FloatTensor(ig_fake.size()).fill_(1.)) + \
+            gan_criterion(vg_fake, T.FloatTensor(vg_fake.size()).fill_(1.))
         loss_gen.backward()
         opt_generator.step()
 
