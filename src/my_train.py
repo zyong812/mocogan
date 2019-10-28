@@ -31,7 +31,6 @@ Options:
     --video_discriminator=<type>    specifies video discriminator type (see models.py for a
                                     list of available models) [default: CategoricalVideoDiscriminator]
 
-    --gan_type=<type>               criterion std or wgan [default: std]
     --video_length=<len>            length of the video [default: 16]
     --print_every=<count>           print every iterations [default: 1]
     --n_channels=<count>            number of channels in the input data [default: 3]
@@ -61,6 +60,7 @@ from logger import Logger
 import time
 import mymodels
 import json
+from torch.autograd import Variable
 
 if torch.cuda.is_available():
     T = torch.cuda
@@ -90,6 +90,41 @@ def videos_to_numpy(tensor):
     generated[generated > 1] = 1
     generated = (generated + 1) / 2 * 255
     return generated.astype('uint8')
+
+def gradient_penalty(real_data, generated_data, D, use_cuda=False, gp_weight=10.):
+    batch_size = real_data.size()[0]
+
+    # Calculate interpolation
+    if len(real_data.shape) == 5:
+        alpha = torch.rand(batch_size, 1, 1, 1, 1)
+    elif len(real_data.shape) == 4:
+        alpha = torch.rand(batch_size, 1, 1, 1)
+
+    alpha = alpha.expand_as(real_data)
+    if use_cuda:
+        alpha = alpha.cuda()
+    interpolated = alpha * real_data.data + (1 - alpha) * generated_data.data
+    # interpolated.requires_grad_()
+    interpolated = Variable(interpolated, requires_grad=True)
+    if use_cuda:
+        interpolated = interpolated.cuda()
+
+    # Calculate probability of interpolated examples
+    prob_interpolated, _ = D(interpolated)
+
+    # Calculate gradients of probabilities with respect to examples
+    gradients = torch.autograd.grad(
+        prob_interpolated, interpolated, 
+        grad_outputs=torch.ones(prob_interpolated.size()).cuda() if use_cuda else torch.ones(prob_interpolated.size()), 
+        create_graph=True, retain_graph=True)[0]
+
+    # Gradients have shape (batch_size, num_channels, img_width, img_height),
+    # so flatten to easily take norm per example in batch
+    gradients = gradients.view(batch_size, -1)
+    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+    wgp = gp_weight * ((gradients_norm - 1) ** 2).mean()
+
+    return wgp
 
 
 # if __name__ == "__main__":
@@ -168,53 +203,50 @@ for epoch in range(10000):
 
         if args['--use_nocondition']:
             first_frames = None
-
         fake_images, _ = generator.sample_images(image_batch, first_frames)
         fake_videos, _ = generator.sample_videos(video_batch, first_frames)
 
         # train video discriminator
-        opt_video_discriminator.zero_grad()
-        vd_fake, _ = video_discriminator(fake_videos.detach())
         vd_real, _ = video_discriminator(real_videos)
-        if args['--gan_type'] == 'std':
-            loss_video_dis = gan_criterion(vd_fake, T.FloatTensor(vd_fake.size()).fill_(0.)) + \
-                gan_criterion(vd_real, T.FloatTensor(vd_real.size()).fill_(1.))
-        elif args['--gan_type'] == 'wgan':
-            loss_video_dis = vd_fake.mean() - vd_real.mean()
+        vd_fake, _ = video_discriminator(fake_videos.detach())
+        vd_wgp = gradient_penalty(real_videos, fake_videos, video_discriminator)
+
+        opt_video_discriminator.zero_grad()
+        loss_video_dis = vd_fake.mean() - vd_real.mean() + vd_wgp
         loss_video_dis.backward()
         opt_video_discriminator.step()
 
         # train image discriminator
+        id_real_input = torch.cat([first_frames, real_images], dim=1)
+        id_fake_input = torch.cat([first_frames, fake_images.detach()], dim=1)
+        id_real, _ = image_discriminator(id_real_input)
+        id_fake, _ = image_discriminator(id_fake_input)
+        id_wgp = gradient_penalty(id_real_input, id_fake_input, image_discriminator)
+
         opt_image_discriminator.zero_grad()
-        id_fake, _ = image_discriminator(torch.cat([first_frames, fake_images.detach()], dim=1))
-        id_real, _ = image_discriminator(torch.cat([first_frames, real_images], dim=1))
-        if args['--gan_type'] == 'std':
-            loss_image_dis = gan_criterion(id_fake, T.FloatTensor(id_fake.size()).fill_(0.)) + \
-                gan_criterion(id_real, T.FloatTensor(id_real.size()).fill_(1.))
-        elif args['--gan_type'] == 'wgan':
-            loss_image_dis = id_fake.mean() - id_real.mean()
+        loss_image_dis = id_fake.mean() - id_real.mean() + id_wgp
         loss_image_dis.backward()
         opt_image_discriminator.step()
 
-        # train generator
-        opt_generator.zero_grad()
-        ig_fake, _ = image_discriminator(torch.cat([first_frames, fake_images], dim=1))
-        vg_fake, _ = video_discriminator(fake_videos)
-
-        if args['--gan_type'] == 'std':
-            loss_gen = gan_criterion(ig_fake, T.FloatTensor(ig_fake.size()).fill_(1.)) + \
-                gan_criterion(vg_fake, T.FloatTensor(vg_fake.size()).fill_(1.))
-        elif args['--gan_type'] == 'wgan':
-            loss_gen = (-ig_fake.mean() - vg_fake.mean())
-        loss_gen.backward()
-        opt_generator.step()
-
-        logs['l_gen'] += loss_gen.data.item()
         logs['l_image_dis'] += loss_image_dis.data.item()
         logs['l_video_dis'] += loss_video_dis.data.item()
-        
+
+        if batch_num % 5 == 0:
+            # train generator
+            opt_generator.zero_grad()
+            ig_fake, _ = image_discriminator(torch.cat([first_frames, fake_images], dim=1))
+            vg_fake, _ = video_discriminator(fake_videos)
+
+            loss_gen = -ig_fake.mean()-vg_fake.mean()
+            loss_gen.backward()
+            opt_generator.step()
+            logs['l_gen'] += loss_gen.data.item()
+
         if batch_num % 10 == 0:
             took_time = time.time() - start_time
+            logs['l_gen'] = logs['l_gen'] / 2.
+            logs['l_image_dis'] = logs['l_image_dis'] / 10.
+            logs['l_video_dis'] = logs['l_video_dis'] / 10.
 
             print(f"Epoch/Batch [{epoch}/{batch_ind} ~ {batch_num}]: l_gen={logs['l_gen']:5.3f}, l_image_dis={logs['l_image_dis']:5.3f}, l_video_dis={logs['l_video_dis']:5.3f}. Took: {took_time:5.2f}")
             print(f"\t videoD: D_real={vd_real.mean():5.3f}, D_fake={vd_fake.mean():5.3f} || imageD: D_real={id_real.mean():5.3f}, D_fake={id_fake.mean():5.3f} || G: vid_fake={vg_fake.mean():5.3f}, img_fake={ig_fake.mean():5.3f}")

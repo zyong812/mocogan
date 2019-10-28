@@ -42,17 +42,17 @@ class ImageDiscriminator(nn.Module):
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ndf * 2),
+            nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ndf * 4),
+            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ndf * 8),
+            nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
 
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
@@ -77,12 +77,12 @@ class PatchImageDiscriminator(nn.Module):
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ndf * 2),
+            nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ndf * 4),
+            nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
@@ -111,17 +111,17 @@ class VideoDiscriminator(nn.Module):
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv3d(ndf, ndf * 2, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
-            nn.InstanceNorm3d(ndf * 2),
+            nn.BatchNorm3d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv3d(ndf * 2, ndf * 4, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
-            nn.InstanceNorm3d(ndf * 4),
+            nn.BatchNorm3d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
             nn.Conv3d(ndf * 4, ndf * 8, 4, stride=(1, 2, 2), padding=(0, 1, 1), bias=False),
-            nn.InstanceNorm3d(ndf * 8),
+            nn.BatchNorm3d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
 
             nn.Conv3d(ndf * 8, n_output_neurons, 4, 1, 0, bias=False),
@@ -169,16 +169,16 @@ class VideoGenerator(nn.Module):
 
         self.main = nn.Sequential(
             nn.ConvTranspose2d(dim_z, ngf * 8, 4, 1, 0, bias=False),
-            nn.InstanceNorm2d(ngf * 8),
+            nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ngf * 4),
+            nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
             nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ngf * 2),
+            nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
             nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
-            nn.InstanceNorm2d(ngf),
+            nn.BatchNorm2d(ngf),
             nn.ReLU(True),
             nn.ConvTranspose2d(ngf, self.n_channels, 4, 2, 1, bias=False),
             nn.Tanh()
