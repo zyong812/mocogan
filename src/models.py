@@ -38,25 +38,25 @@ class ImageDiscriminator(nn.Module):
 
         self.main = nn.Sequential(
             Noise(use_noise, sigma=noise_sigma),
-            nn.Conv2d(n_channels, ndf, 4, 2, 1, bias=False),
+            SpectralNorm(nn.Conv2d(n_channels, ndf, 4, 2, 1, bias=False)),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            SpectralNorm(nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False)),
             nn.BatchNorm2d(ndf * 2),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            SpectralNorm(nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False)),
             nn.BatchNorm2d(ndf * 4),
             nn.LeakyReLU(0.2, inplace=True),
 
             Noise(use_noise, sigma=noise_sigma),
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            SpectralNorm(nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False)),
             nn.BatchNorm2d(ndf * 8),
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            SpectralNorm(nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False)),
             nn.Sigmoid()
         )
 
@@ -169,19 +169,19 @@ class VideoGenerator(nn.Module):
         self.recurrent = nn.GRUCell(dim_z_motion, dim_z_motion)
 
         self.main = nn.Sequential(
-            nn.ConvTranspose2d(dim_z, ngf * 8, 4, 1, 0, bias=False),
+            SpectralNorm(nn.ConvTranspose2d(dim_z, ngf * 8, 4, 1, 0, bias=False)),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+            SpectralNorm(nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False)),
             nn.BatchNorm2d(ngf * 4),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            SpectralNorm(nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False)),
             nn.BatchNorm2d(ngf * 2),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
+            SpectralNorm(nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False)),
             nn.BatchNorm2d(ngf),
             nn.ReLU(True),
-            nn.ConvTranspose2d(ngf, self.n_channels, 4, 2, 1, bias=False),
+            SpectralNorm(nn.ConvTranspose2d(ngf, self.n_channels, 4, 2, 1, bias=False)),
             nn.Tanh()
         )
 
