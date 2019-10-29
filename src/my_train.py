@@ -16,8 +16,6 @@ Options:
     --image_size=<int>              resize all frames to this size [default: 64]
 
     --use_infogan                   when specified infogan loss is usedq:q
-    --use_nocondition               use no condition
-
     --use_categories                when specified ground truth categories are used to
                                     train CategoricalVideoDiscriminator
 
@@ -135,9 +133,9 @@ if torch.cuda.is_available():
     image_discriminator.cuda()
     video_discriminator.cuda()
 
-opt_generator = optim.Adam(generator.parameters(), lr=0.0005, betas=(0.5, 0.999), weight_decay=0.00001)
-opt_image_discriminator = optim.Adam(image_discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
-opt_video_discriminator = optim.Adam(video_discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999), weight_decay=0.00001)
+opt_generator = optim.Adam(generator.parameters(), lr=0.0001, betas=(0.5, 0.999), weight_decay=0.00001)
+opt_image_discriminator = optim.Adam(image_discriminator.parameters(), lr=0.0004, betas=(0.5, 0.999), weight_decay=0.00001)
+opt_video_discriminator = optim.Adam(video_discriminator.parameters(), lr=0.0004, betas=(0.5, 0.999), weight_decay=0.00001)
 
 
 # training
@@ -164,9 +162,6 @@ for epoch in range(10000):
             real_videos = real_videos.cuda()
             real_images = real_images.cuda()
             first_frames = first_frames.cuda()
-
-        if args['--use_nocondition']:
-            first_frames = None
 
         fake_images, _ = generator.sample_images(image_batch, first_frames)
         fake_videos, _ = generator.sample_videos(video_batch, first_frames)
